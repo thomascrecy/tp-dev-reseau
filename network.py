@@ -6,6 +6,7 @@ import psutil
 import ipaddress
 from datetime import datetime
 import platform
+import subprocess
 
 #dossier temp
 specific_path = "C:\\Users\\crecy\\AppData\\Local\\Temp\\network_tp3"
@@ -77,24 +78,41 @@ elif argv[1] == "ping":
 
 # IP
 elif argv[1] == "ip":
-    interfaces = psutil.net_if_addrs()
-    try:
-        ip = interfaces["Wi-Fi"][1][1]
-        result = str(ip)
+    if platform.system() == "Windows" :
+        interfaces = psutil.net_if_addrs()
+        try:
+            ip = interfaces["Wi-Fi"][1][1]
+            result = str(ip)
 
-        def netmask_to_cidr(netmask):
-            try:
-                network = ipaddress.IPv4Network(f"0.0.0.0/{netmask}", strict=False)
-                return network.prefixlen
-            except ValueError:
-                return "Invalid netmask"
+            def netmask_to_cidr(netmask):
+                try:
+                    network = ipaddress.IPv4Network(f"0.0.0.0/{netmask}", strict=False)
+                    return network.prefixlen
+                except ValueError:
+                    return "Invalid netmask"
 
-        cidr = netmask_to_cidr(interfaces["Wi-Fi"][1][2])
-        nb_adresses = 2**(32 - cidr)
-        result += "\n" + str(nb_adresses) + " adresses"
-        log_command("ip", argv[1]) #LOG
-    except KeyError:
-        result = "Wi-Fi interface not found."
+            cidr = netmask_to_cidr(interfaces["Wi-Fi"][1][2])
+            nb_adresses = 2**(32 - cidr)
+            result += "\n" + str(nb_adresses) + " adresses"
+            log_command("ip", argv[1]) #LOG
+        except KeyError:
+            result = "Wi-Fi interface not found."
+    else :
+        try:
+            output = subprocess.check_output(['ip', 'a'], universal_newlines=True)
+            for line in output.splitlines():
+                if 'inet ' in line and 'scope global' in line:
+                    ip_info = line.strip().split()
+                    ip = ip_info[1].split('/')[0]
+                    netmask_cidr = ip_info[1].split('/')[1]
+                    nb_adresses = 2**(32 - int(netmask_cidr))
+                    result = f"{ip}\n{nb_adresses} addresses"
+                    break
+        except subprocess.CalledProcessError:
+            result = "Error retrieving IP address."
+
+    log_command("ip", argv[1])  # LOG
+
 
 else:
     result = f"{argv[1]} is not an available command. Déso."
