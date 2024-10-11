@@ -5,6 +5,7 @@ import re
 import psutil
 import ipaddress
 from datetime import datetime
+import platform
 
 #dossier temp
 specific_path = "C:\\Users\\crecy\\AppData\\Local\\Temp\\network_tp3"
@@ -58,7 +59,7 @@ if argv[1] == "lookup":
     validate = reg_check(argv[2])
     if validate == True:
         hostname, _, ip_addresses = socket.gethostbyname_ex(argv[2])
-        result= f"{'\n'.join(ip_addresses)}"
+        result= '\n'.join(ip_addresses)
         log_command("lookup", argv[2]) #LOG
     else:
         result = "L'adresse IP n'est pas valide"
@@ -99,3 +100,8 @@ else:
     result = f"{argv[1]} is not an available command. Déso."
 
 print(result)
+
+if platform.system() == "Windows" :
+    print("c windows")
+else :
+    print("c pas windows")
