@@ -77,39 +77,42 @@ elif argv[1] == "ping":
         log_error("ping", argv[2]) #LOG
 
 # IP
-elif argv[1] == "ip":
-    if platform.system() == "Windows" :
-        interfaces = psutil.net_if_addrs()
+def netmask_to_cidr(netmask):
+    try:
+        network = ipaddress.IPv4Network(f"0.0.0.0/{netmask}", strict=False)
+        return network.prefixlen
+    except ValueError:
+        return "Pas un bon masque"
+if argv[1] == "ip":
+    interfaces = psutil.net_if_addrs()
+    
+    if platform.system() == "Windows":
         try:
-            ip = interfaces["Wi-Fi"][1][1]
+            ip = interfaces["Wi-Fi"][1][1]  
             result = str(ip)
-
-            def netmask_to_cidr(netmask):
-                try:
-                    network = ipaddress.IPv4Network(f"0.0.0.0/{netmask}", strict=False)
-                    return network.prefixlen
-                except ValueError:
-                    return "Invalid netmask"
 
             cidr = netmask_to_cidr(interfaces["Wi-Fi"][1][2])
             nb_adresses = 2**(32 - cidr)
-            result += "\n" + str(nb_adresses) + " adresses"
-            log_command("ip", argv[1]) #LOG
+            result += "\n" + str(nb_adresses) + " addresses"
         except KeyError:
             result = "Wi-Fi interface not found."
-    else :
-        try:
-            output = subprocess.check_output(['ip', 'a'], universal_newlines=True)
-            for line in output.splitlines():
-                if 'inet ' in line and 'scope global' in line:
-                    ip_info = line.strip().split()
-                    ip = ip_info[1].split('/')[0]
-                    netmask_cidr = ip_info[1].split('/')[1]
-                    nb_adresses = 2**(32 - int(netmask_cidr))
+    else:
+        ip_found = False
+        for interface_name, addresses in interfaces.items():
+            for address in addresses:
+                if address.family == psutil.AF_INET:
+                    ip = address.address
+                    netmask = address.netmask
+                    cidr = netmask_to_cidr(netmask)
+                    nb_adresses = 2**(32 - cidr)
                     result = f"{ip}\n{nb_adresses} addresses"
+                    ip_found = True
                     break
-        except subprocess.CalledProcessError:
-            result = "Error retrieving IP address."
+            if ip_found:
+                break
+
+        if not ip_found:
+            result = "No IPv4 address found."
 
     log_command("ip", argv[1])  # LOG
 
