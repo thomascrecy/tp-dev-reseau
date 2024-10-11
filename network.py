@@ -100,7 +100,7 @@ if argv[1] == "ip":
         ip_found = False
         for interface_name, addresses in interfaces.items():
             for address in addresses:
-                if address.family == psutil.AF_INET:
+                if address.family == socket.AF_INET:
                     ip = address.address
                     netmask = address.netmask
                     cidr = netmask_to_cidr(netmask)
